@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_Process_VersicherungsfallAbwickeln" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.52.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.6.0">
+  <bpmn:collaboration id="Collaboration_Process_VersicherungsfallAbwickeln">
+    <bpmn:participant id="Participant_Haendler" name="E-Bike-Händler – Schadensmanagement" processRef="Process_VersicherungsfallAbwickeln" />
+    <bpmn:participant id="Participant_Versicherung" name="Versicherung" />
+    <bpmn:messageFlow id="Msg_Meldung" name="Schadens­meldung" sourceRef="Task_Melden" targetRef="Participant_Versicherung" />
+    <bpmn:messageFlow id="Msg_VEntscheid" name="Entscheidung" sourceRef="Participant_Versicherung" targetRef="Task_Abwarten" />
+    <bpmn:messageFlow id="Msg_Erinnerung" name="Erinnerung" sourceRef="Task_Nachfassen" targetRef="Participant_Versicherung" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_VersicherungsfallAbwickeln" name="Versicherungsfall abwickeln" isExecutable="true">
+    <bpmn:startEvent id="Start_V">
+      <bpmn:outgoing>V_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="Task_VersPruefen" name="Schadens­ursache und Versicherung prüfen">
+      <bpmn:incoming>V_1</bpmn:incoming>
+      <bpmn:outgoing>V_2</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="GW_Versfall" name="Versicherungsfall?">
+      <bpmn:incoming>V_2</bpmn:incoming>
+      <bpmn:outgoing>V_Versfall_Ja</bpmn:outgoing>
+      <bpmn:outgoing>V_Versfall_Nein</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sendTask id="Task_Melden" name="Schaden an Versicherung melden">
+      <bpmn:incoming>V_Versfall_Ja</bpmn:incoming>
+      <bpmn:outgoing>V_3</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:receiveTask id="Task_Abwarten" name="Antwort der Versicherung abwarten">
+      <bpmn:incoming>V_3</bpmn:incoming>
+      <bpmn:outgoing>V_4</bpmn:outgoing>
+    </bpmn:receiveTask>
+    <bpmn:exclusiveGateway id="GW_Zusage" name="Deckungszusage erteilt?">
+      <bpmn:incoming>V_4</bpmn:incoming>
+      <bpmn:outgoing>V_Zusage_Ja</bpmn:outgoing>
+      <bpmn:outgoing>V_Zusage_Nein</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="End_Zusage" name="Deckungszusage erhalten">
+      <bpmn:incoming>V_Zusage_Ja</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:exclusiveGateway id="GW_JoinN">
+      <bpmn:incoming>V_Versfall_Nein</bpmn:incoming>
+      <bpmn:incoming>V_Zusage_Nein</bpmn:incoming>
+      <bpmn:outgoing>V_5</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="End_KeineDeckung" name="Keine Deckung">
+      <bpmn:incoming>V_5</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sendTask id="Task_Nachfassen" name="Bei Versicherung nochmal melden">
+      <bpmn:incoming>V_6</bpmn:incoming>
+      <bpmn:outgoing>V_7</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:endEvent id="End_Erinnerung" name="Erinnerung versendet">
+      <bpmn:incoming>V_7</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:boundaryEvent id="Timer_Erinnerung" name="alle 14 Tage" cancelActivity="false" attachedToRef="Task_Abwarten">
+      <bpmn:outgoing>V_6</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="Timer_Erinnerung_TED">
+        <bpmn:timeCycle xsi:type="bpmn:tFormalExpression">R/P14D</bpmn:timeCycle>
+      </bpmn:timerEventDefinition>
+    </bpmn:boundaryEvent>
+    <bpmn:sequenceFlow id="V_1" sourceRef="Start_V" targetRef="Task_VersPruefen" />
+    <bpmn:sequenceFlow id="V_2" sourceRef="Task_VersPruefen" targetRef="GW_Versfall" />
+    <bpmn:sequenceFlow id="V_Versfall_Ja" name="Ja" sourceRef="GW_Versfall" targetRef="Task_Melden" />
+    <bpmn:sequenceFlow id="V_Versfall_Nein" name="Nein" sourceRef="GW_Versfall" targetRef="GW_JoinN" />
+    <bpmn:sequenceFlow id="V_3" sourceRef="Task_Melden" targetRef="Task_Abwarten" />
+    <bpmn:sequenceFlow id="V_4" sourceRef="Task_Abwarten" targetRef="GW_Zusage" />
+    <bpmn:sequenceFlow id="V_Zusage_Ja" name="Ja" sourceRef="GW_Zusage" targetRef="End_Zusage" />
+    <bpmn:sequenceFlow id="V_Zusage_Nein" name="Nein" sourceRef="GW_Zusage" targetRef="GW_JoinN" />
+    <bpmn:sequenceFlow id="V_5" sourceRef="GW_JoinN" targetRef="End_KeineDeckung" />
+    <bpmn:sequenceFlow id="V_6" sourceRef="Timer_Erinnerung" targetRef="Task_Nachfassen" />
+    <bpmn:sequenceFlow id="V_7" sourceRef="Task_Nachfassen" targetRef="End_Erinnerung" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_Process_VersicherungsfallAbwickeln">
+    <bpmndi:BPMNPlane id="BPMNPlane_Process_VersicherungsfallAbwickeln" bpmnElement="Collaboration_Process_VersicherungsfallAbwickeln">
+      <bpmndi:BPMNShape id="Participant_Haendler_di" bpmnElement="Participant_Haendler" isHorizontal="true">
+        <dc:Bounds x="160" y="40" width="960" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Start_V_di" bpmnElement="Start_V">
+        <dc:Bounds x="202" y="182" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_VersPruefen_di" bpmnElement="Task_VersPruefen">
+        <dc:Bounds x="290" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_Versfall_di" bpmnElement="GW_Versfall" isMarkerVisible="true">
+        <dc:Bounds x="445" y="175" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="425" y="231" width="90" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Melden_di" bpmnElement="Task_Melden">
+        <dc:Bounds x="550" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Abwarten_di" bpmnElement="Task_Abwarten">
+        <dc:Bounds x="700" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_Zusage_di" bpmnElement="GW_Zusage" isMarkerVisible="true">
+        <dc:Bounds x="905" y="175" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="888" y="231" width="85" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_Zusage_di" bpmnElement="End_Zusage">
+        <dc:Bounds x="1022" y="182" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="998" y="224" width="85" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_JoinN_di" bpmnElement="GW_JoinN" isMarkerVisible="true">
+        <dc:Bounds x="905" y="75" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_KeineDeckung_di" bpmnElement="End_KeineDeckung">
+        <dc:Bounds x="1022" y="82" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1003" y="124" width="75" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Nachfassen_di" bpmnElement="Task_Nachfassen">
+        <dc:Bounds x="800" y="290" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_Erinnerung_di" bpmnElement="End_Erinnerung">
+        <dc:Bounds x="952" y="312" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="943" y="354" width="54" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Timer_Erinnerung_di" bpmnElement="Timer_Erinnerung">
+        <dc:Bounds x="757" y="222" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="801" y="246" width="60" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="V_1_di" bpmnElement="V_1">
+        <di:waypoint x="238" y="200" />
+        <di:waypoint x="290" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="V_2_di" bpmnElement="V_2">
+        <di:waypoint x="390" y="200" />
+        <di:waypoint x="445" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="V_Versfall_Ja_di" bpmnElement="V_Versfall_Ja">
+        <di:waypoint x="495" y="200" />
+        <di:waypoint x="550" y="200" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="507" y="182" width="12" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="V_Versfall_Nein_di" bpmnElement="V_Versfall_Nein">
+        <di:waypoint x="470" y="175" />
+        <di:waypoint x="470" y="100" />
+        <di:waypoint x="905" y="100" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="480" y="135" width="23" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="V_3_di" bpmnElement="V_3">
+        <di:waypoint x="650" y="200" />
+        <di:waypoint x="700" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="V_4_di" bpmnElement="V_4">
+        <di:waypoint x="800" y="200" />
+        <di:waypoint x="905" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="V_Zusage_Ja_di" bpmnElement="V_Zusage_Ja">
+        <di:waypoint x="955" y="200" />
+        <di:waypoint x="1022" y="200" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="967" y="182" width="12" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="V_Zusage_Nein_di" bpmnElement="V_Zusage_Nein">
+        <di:waypoint x="930" y="175" />
+        <di:waypoint x="930" y="125" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="940" y="143" width="23" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="V_5_di" bpmnElement="V_5">
+        <di:waypoint x="955" y="100" />
+        <di:waypoint x="1022" y="100" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="V_6_di" bpmnElement="V_6">
+        <di:waypoint x="775" y="258" />
+        <di:waypoint x="775" y="330" />
+        <di:waypoint x="800" y="330" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="V_7_di" bpmnElement="V_7">
+        <di:waypoint x="900" y="330" />
+        <di:waypoint x="952" y="330" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="Participant_Versicherung_di" bpmnElement="Participant_Versicherung" isHorizontal="true">
+        <dc:Bounds x="520" y="510" width="420" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Msg_Meldung_di" bpmnElement="Msg_Meldung">
+        <di:waypoint x="600" y="240" />
+        <di:waypoint x="600" y="510" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="625" y="455" width="53" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Msg_VEntscheid_di" bpmnElement="Msg_VEntscheid">
+        <di:waypoint x="725" y="510" />
+        <di:waypoint x="725" y="240" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="743" y="455" width="67" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Msg_Erinnerung_di" bpmnElement="Msg_Erinnerung">
+        <di:waypoint x="850" y="370" />
+        <di:waypoint x="850" y="510" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="874" y="455" width="54" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

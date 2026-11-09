@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_Process_FehlerKlaeren" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.30.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.6.0">
+  <bpmn:process id="Process_FehlerKlaeren" name="Fehler klären" isExecutable="true">
+    <bpmn:startEvent id="Start_F">
+      <bpmn:outgoing>F_F1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="Task_Auslesen" name="Fehlerspeicher auslesen">
+      <bpmn:incoming>F_F1</bpmn:incoming>
+      <bpmn:outgoing>F_F2</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="GW_Bekannt" name="Bekannter Fehler?">
+      <bpmn:incoming>F_F2</bpmn:incoming>
+      <bpmn:outgoing>F_Bekannt_Ja</bpmn:outgoing>
+      <bpmn:outgoing>F_Bekannt_Nein</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="Task_Loesung" name="Bekannte Lösung zuordnen">
+      <bpmn:incoming>F_Bekannt_Ja</bpmn:incoming>
+      <bpmn:outgoing>F_F3</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_Diagnose" name="Detaildiagnose durchführen">
+      <bpmn:incoming>F_Bekannt_Nein</bpmn:incoming>
+      <bpmn:outgoing>F_F4</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="GW_JoinF">
+      <bpmn:incoming>F_F3</bpmn:incoming>
+      <bpmn:incoming>F_F4</bpmn:incoming>
+      <bpmn:outgoing>F_F5</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="End_F" name="Fehler geklärt">
+      <bpmn:incoming>F_F5</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="F_F1" sourceRef="Start_F" targetRef="Task_Auslesen" />
+    <bpmn:sequenceFlow id="F_F2" sourceRef="Task_Auslesen" targetRef="GW_Bekannt" />
+    <bpmn:sequenceFlow id="F_Bekannt_Ja" name="Ja" sourceRef="GW_Bekannt" targetRef="Task_Loesung" />
+    <bpmn:sequenceFlow id="F_Bekannt_Nein" name="Nein" sourceRef="GW_Bekannt" targetRef="Task_Diagnose" />
+    <bpmn:sequenceFlow id="F_F3" sourceRef="Task_Loesung" targetRef="GW_JoinF" />
+    <bpmn:sequenceFlow id="F_F4" sourceRef="Task_Diagnose" targetRef="GW_JoinF" />
+    <bpmn:sequenceFlow id="F_F5" sourceRef="GW_JoinF" targetRef="End_F" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_Process_FehlerKlaeren">
+    <bpmndi:BPMNPlane id="BPMNPlane_Process_FehlerKlaeren" bpmnElement="Process_FehlerKlaeren">
+      <bpmndi:BPMNShape id="Start_F_di" bpmnElement="Start_F">
+        <dc:Bounds x="82" y="182" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Auslesen_di" bpmnElement="Task_Auslesen">
+        <dc:Bounds x="160" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_Bekannt_di" bpmnElement="GW_Bekannt" isMarkerVisible="true">
+        <dc:Bounds x="315" y="175" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="295" y="141" width="90" height="28" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Loesung_di" bpmnElement="Task_Loesung">
+        <dc:Bounds x="420" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Diagnose_di" bpmnElement="Task_Diagnose">
+        <dc:Bounds x="420" y="280" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_JoinF_di" bpmnElement="GW_JoinF" isMarkerVisible="true">
+        <dc:Bounds x="575" y="175" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_F_di" bpmnElement="End_F">
+        <dc:Bounds x="672" y="182" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="645" y="224" width="90" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="F_F1_di" bpmnElement="F_F1">
+        <di:waypoint x="118" y="200" />
+        <di:waypoint x="160" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_F2_di" bpmnElement="F_F2">
+        <di:waypoint x="260" y="200" />
+        <di:waypoint x="315" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_Bekannt_Ja_di" bpmnElement="F_Bekannt_Ja">
+        <di:waypoint x="365" y="200" />
+        <di:waypoint x="420" y="200" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="372" y="182" width="22" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_Bekannt_Nein_di" bpmnElement="F_Bekannt_Nein">
+        <di:waypoint x="340" y="225" />
+        <di:waypoint x="340" y="320" />
+        <di:waypoint x="420" y="320" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="346" y="262" width="30" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_F3_di" bpmnElement="F_F3">
+        <di:waypoint x="520" y="200" />
+        <di:waypoint x="575" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_F4_di" bpmnElement="F_F4">
+        <di:waypoint x="520" y="320" />
+        <di:waypoint x="600" y="320" />
+        <di:waypoint x="600" y="225" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_F5_di" bpmnElement="F_F5">
+        <di:waypoint x="625" y="200" />
+        <di:waypoint x="672" y="200" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

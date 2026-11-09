@@ -1,0 +1,386 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_Process_Beschwerdemanagement" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.52.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.6.0">
+  <bpmn:collaboration id="Collaboration_Process_Beschwerdemanagement">
+    <bpmn:participant id="Participant_Haendler" name="E-Bike-Händler" processRef="Process_Beschwerdemanagement" />
+    <bpmn:participant id="Participant_Kunde" name="Kunde" />
+    <bpmn:participant id="Participant_Hersteller" name="Hersteller" />
+    <bpmn:participant id="Participant_Versicherung" name="Versicherung" />
+    <bpmn:messageFlow id="Msg_Beschwerde" name="Beschwerde" sourceRef="Participant_Kunde" targetRef="Start_Beschwerde" />
+    <bpmn:messageFlow id="Msg_KV" name="Kosten­voranschlag" sourceRef="Task_KV" targetRef="Participant_Kunde" />
+    <bpmn:messageFlow id="Msg_Teil" name="Ersatzteil + Anleitung" sourceRef="Task_Versand" targetRef="Participant_Kunde" />
+    <bpmn:messageFlow id="Msg_EBike" name="E-Bike + Rechnung" sourceRef="Task_Uebergabe" targetRef="Participant_Kunde" />
+    <bpmn:messageFlow id="Msg_Antrag" name="Garantieantrag" sourceRef="Call_KostenuebernahmeKlaeren" targetRef="Participant_Hersteller" />
+    <bpmn:messageFlow id="Msg_HEntscheid" name="Entscheidung" sourceRef="Participant_Hersteller" targetRef="Call_KostenuebernahmeKlaeren" />
+    <bpmn:messageFlow id="Msg_Meldung" name="Schadens­meldung" sourceRef="Call_KostenuebernahmeKlaeren" targetRef="Participant_Versicherung" />
+    <bpmn:messageFlow id="Msg_Erinnerung" name="Erinnerung" sourceRef="Call_KostenuebernahmeKlaeren" targetRef="Participant_Versicherung" />
+    <bpmn:messageFlow id="Msg_VEntscheid" name="Entscheidung" sourceRef="Participant_Versicherung" targetRef="Call_KostenuebernahmeKlaeren" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_Beschwerdemanagement" name="Beschwerdemanagement E-Bike" isExecutable="true">
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="Lane_Schadensmanagement" name="Schadensmanagement">
+        <bpmn:flowNodeRef>Call_KostenuebernahmeKlaeren</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Werkstatt" name="Werkstatt">
+        <bpmn:flowNodeRef>GW_JoinR</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Reparieren</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Uebergabe</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_Repariert</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Kundenservice" name="Kundenservice">
+        <bpmn:flowNodeRef>Start_Beschwerde</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>GW_Gedeckt</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_KV</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_KV</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>GW_Schaden</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>GW_Werkstatt</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Versand</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_Versand</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Call_FehlerKlaeren</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Call_ErsatzteilloesungFestlegen</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Aufnehmen</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="Start_Beschwerde" name="Beschwerde eingegangen">
+      <bpmn:outgoing>M_01</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="Start_Beschwerde_MED" />
+    </bpmn:startEvent>
+    <bpmn:exclusiveGateway id="GW_Gedeckt" name="Kosten gedeckt?">
+      <bpmn:incoming>M_04</bpmn:incoming>
+      <bpmn:outgoing>M_Gedeckt_Nein</bpmn:outgoing>
+      <bpmn:outgoing>M_Gedeckt_Ja</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sendTask id="Task_KV" name="Kostenvoranschlag senden">
+      <bpmn:incoming>M_Gedeckt_Nein</bpmn:incoming>
+      <bpmn:outgoing>M_05</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:endEvent id="End_KV" name="Kosten­voranschlag versendet">
+      <bpmn:incoming>M_05</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:exclusiveGateway id="GW_Schaden" name="Höhe des Schadens?">
+      <bpmn:incoming>M_Gedeckt_Ja</bpmn:incoming>
+      <bpmn:outgoing>M_Schaden_Gering</bpmn:outgoing>
+      <bpmn:outgoing>M_Schaden_Hoch</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="GW_Werkstatt" name="Einbau durch Werkstatt?">
+      <bpmn:incoming>M_06</bpmn:incoming>
+      <bpmn:outgoing>M_Werkstatt_Nein</bpmn:outgoing>
+      <bpmn:outgoing>M_Werkstatt_Ja</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sendTask id="Task_Versand" name="Ersatzteil mit Anleitung senden">
+      <bpmn:incoming>M_Werkstatt_Nein</bpmn:incoming>
+      <bpmn:outgoing>M_07</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:endEvent id="End_Versand" name="Ersatzteil versendet">
+      <bpmn:incoming>M_07</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:exclusiveGateway id="GW_JoinR">
+      <bpmn:incoming>M_Schaden_Hoch</bpmn:incoming>
+      <bpmn:incoming>M_Werkstatt_Ja</bpmn:incoming>
+      <bpmn:outgoing>M_08</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="Task_Reparieren" name="E-Bike reparieren">
+      <bpmn:incoming>M_08</bpmn:incoming>
+      <bpmn:outgoing>M_09</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sendTask id="Task_Uebergabe" name="E-Bike übergeben und abrechnen">
+      <bpmn:incoming>M_09</bpmn:incoming>
+      <bpmn:outgoing>M_10</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:endEvent id="End_Repariert" name="Reparatur abgeschlossen">
+      <bpmn:incoming>M_10</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:callActivity id="Call_FehlerKlaeren" name="Fehler klären" calledElement="Process_FehlerKlaeren">
+      <bpmn:extensionElements>
+        <zeebe:calledElement processId="Process_FehlerKlaeren" propagateAllChildVariables="false" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>M_02</bpmn:incoming>
+      <bpmn:outgoing>M_03</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:callActivity id="Call_KostenuebernahmeKlaeren" name="Kostenübernahme klären" calledElement="Process_KostenuebernahmeKlaeren">
+      <bpmn:extensionElements>
+        <zeebe:calledElement processId="Process_KostenuebernahmeKlaeren" propagateAllChildVariables="false" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>M_03</bpmn:incoming>
+      <bpmn:outgoing>M_04</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:callActivity id="Call_ErsatzteilloesungFestlegen" name="Ersatzteillösung festlegen" calledElement="Process_ErsatzteilloesungFestlegen">
+      <bpmn:extensionElements>
+        <zeebe:calledElement processId="Process_ErsatzteilloesungFestlegen" propagateAllChildVariables="false" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>M_Schaden_Gering</bpmn:incoming>
+      <bpmn:outgoing>M_06</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:sequenceFlow id="M_01" sourceRef="Start_Beschwerde" targetRef="Task_Aufnehmen" />
+    <bpmn:sequenceFlow id="M_02" sourceRef="Task_Aufnehmen" targetRef="Call_FehlerKlaeren" />
+    <bpmn:sequenceFlow id="M_04" sourceRef="Call_KostenuebernahmeKlaeren" targetRef="GW_Gedeckt" />
+    <bpmn:sequenceFlow id="M_Gedeckt_Nein" name="Nein" sourceRef="GW_Gedeckt" targetRef="Task_KV" />
+    <bpmn:sequenceFlow id="M_Gedeckt_Ja" name="Ja" sourceRef="GW_Gedeckt" targetRef="GW_Schaden" />
+    <bpmn:sequenceFlow id="M_05" sourceRef="Task_KV" targetRef="End_KV" />
+    <bpmn:sequenceFlow id="M_Schaden_Gering" name="gering" sourceRef="GW_Schaden" targetRef="Call_ErsatzteilloesungFestlegen" />
+    <bpmn:sequenceFlow id="M_Schaden_Hoch" name="hoch" sourceRef="GW_Schaden" targetRef="GW_JoinR" />
+    <bpmn:sequenceFlow id="M_06" sourceRef="Call_ErsatzteilloesungFestlegen" targetRef="GW_Werkstatt" />
+    <bpmn:sequenceFlow id="M_Werkstatt_Nein" name="Nein" sourceRef="GW_Werkstatt" targetRef="Task_Versand" />
+    <bpmn:sequenceFlow id="M_Werkstatt_Ja" name="Ja" sourceRef="GW_Werkstatt" targetRef="GW_JoinR" />
+    <bpmn:sequenceFlow id="M_07" sourceRef="Task_Versand" targetRef="End_Versand" />
+    <bpmn:sequenceFlow id="M_08" sourceRef="GW_JoinR" targetRef="Task_Reparieren" />
+    <bpmn:sequenceFlow id="M_09" sourceRef="Task_Reparieren" targetRef="Task_Uebergabe" />
+    <bpmn:sequenceFlow id="M_10" sourceRef="Task_Uebergabe" targetRef="End_Repariert" />
+    <bpmn:sequenceFlow id="M_03" sourceRef="Call_FehlerKlaeren" targetRef="Call_KostenuebernahmeKlaeren" />
+    <bpmn:task id="Task_Aufnehmen" name="Beschwerde aufnehmen">
+      <bpmn:incoming>M_01</bpmn:incoming>
+      <bpmn:outgoing>M_02</bpmn:outgoing>
+    </bpmn:task>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_Process_Beschwerdemanagement">
+    <bpmndi:BPMNPlane id="BPMNPlane_Process_Beschwerdemanagement" bpmnElement="Collaboration_Process_Beschwerdemanagement">
+      <bpmndi:BPMNShape id="Participant_Haendler_di" bpmnElement="Participant_Haendler" isHorizontal="true">
+        <dc:Bounds x="160" y="170" width="1640" height="620" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Schadensmanagement_di" bpmnElement="Lane_Schadensmanagement" isHorizontal="true">
+        <dc:Bounds x="190" y="620" width="1610" height="170" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Werkstatt_di" bpmnElement="Lane_Werkstatt" isHorizontal="true">
+        <dc:Bounds x="190" y="440" width="1610" height="180" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Kundenservice_di" bpmnElement="Lane_Kundenservice" isHorizontal="true">
+        <dc:Bounds x="190" y="170" width="1610" height="270" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Start_Beschwerde_di" bpmnElement="Start_Beschwerde">
+        <dc:Bounds x="242" y="332" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="228" y="374" width="64" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Aufnehmen_di" bpmnElement="Task_Aufnehmen">
+        <dc:Bounds x="330" y="310" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_Gedeckt_di" bpmnElement="GW_Gedeckt" isMarkerVisible="true">
+        <dc:Bounds x="915" y="325" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="809" y="322" width="82" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_KV_di" bpmnElement="Task_KV">
+        <dc:Bounds x="1010" y="190" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_KV_di" bpmnElement="End_KV">
+        <dc:Bounds x="1172" y="212" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1160" y="254" width="60" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_Schaden_di" bpmnElement="GW_Schaden" isMarkerVisible="true">
+        <dc:Bounds x="1025" y="325" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1022" y="291" width="56" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_Werkstatt_di" bpmnElement="GW_Werkstatt" isMarkerVisible="true">
+        <dc:Bounds x="1285" y="325" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1278" y="291" width="65" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Versand_di" bpmnElement="Task_Versand">
+        <dc:Bounds x="1390" y="310" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_Versand_di" bpmnElement="End_Versand">
+        <dc:Bounds x="1532" y="332" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1526" y="374" width="49" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_JoinR_di" bpmnElement="GW_JoinR" isMarkerVisible="true">
+        <dc:Bounds x="1285" y="505" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Reparieren_di" bpmnElement="Task_Reparieren">
+        <dc:Bounds x="1390" y="490" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Uebergabe_di" bpmnElement="Task_Uebergabe">
+        <dc:Bounds x="1540" y="490" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_Repariert_di" bpmnElement="End_Repariert">
+        <dc:Bounds x="1702" y="512" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1683" y="554" width="74" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Call_FehlerKlaeren_di" bpmnElement="Call_FehlerKlaeren">
+        <dc:Bounds x="460" y="310" width="100" height="80" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="465" y="396" width="90" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Call_KostenuebernahmeKlaeren_di" bpmnElement="Call_KostenuebernahmeKlaeren">
+        <dc:Bounds x="540" y="660" width="356" height="80" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="673" y="746" width="90" height="28" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Call_ErsatzteilloesungFestlegen_di" bpmnElement="Call_ErsatzteilloesungFestlegen">
+        <dc:Bounds x="1130" y="310" width="100" height="80" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1135" y="396" width="90" height="28" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="M_01_di" bpmnElement="M_01">
+        <di:waypoint x="278" y="350" />
+        <di:waypoint x="330" y="350" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="M_02_di" bpmnElement="M_02">
+        <di:waypoint x="430" y="350" />
+        <di:waypoint x="460" y="350" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="M_04_di" bpmnElement="M_04">
+        <di:waypoint x="896" y="700" />
+        <di:waypoint x="940" y="700" />
+        <di:waypoint x="940" y="375" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="M_Gedeckt_Nein_di" bpmnElement="M_Gedeckt_Nein">
+        <di:waypoint x="940" y="325" />
+        <di:waypoint x="940" y="230" />
+        <di:waypoint x="1010" y="230" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="950" y="280" width="23" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="M_Gedeckt_Ja_di" bpmnElement="M_Gedeckt_Ja">
+        <di:waypoint x="965" y="350" />
+        <di:waypoint x="1025" y="350" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="977" y="332" width="12" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="M_05_di" bpmnElement="M_05">
+        <di:waypoint x="1130" y="230" />
+        <di:waypoint x="1172" y="230" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="M_Schaden_Gering_di" bpmnElement="M_Schaden_Gering">
+        <di:waypoint x="1075" y="350" />
+        <di:waypoint x="1130" y="350" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1087" y="332" width="31" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="M_Schaden_Hoch_di" bpmnElement="M_Schaden_Hoch">
+        <di:waypoint x="1050" y="375" />
+        <di:waypoint x="1050" y="530" />
+        <di:waypoint x="1285" y="530" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1059" y="385" width="24" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="M_06_di" bpmnElement="M_06">
+        <di:waypoint x="1230" y="350" />
+        <di:waypoint x="1285" y="350" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="M_Werkstatt_Nein_di" bpmnElement="M_Werkstatt_Nein">
+        <di:waypoint x="1335" y="350" />
+        <di:waypoint x="1390" y="350" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1346" y="332" width="23" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="M_Werkstatt_Ja_di" bpmnElement="M_Werkstatt_Ja">
+        <di:waypoint x="1310" y="375" />
+        <di:waypoint x="1310" y="505" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1321" y="385" width="12" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="M_07_di" bpmnElement="M_07">
+        <di:waypoint x="1490" y="350" />
+        <di:waypoint x="1532" y="350" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="M_08_di" bpmnElement="M_08">
+        <di:waypoint x="1335" y="530" />
+        <di:waypoint x="1390" y="530" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="M_09_di" bpmnElement="M_09">
+        <di:waypoint x="1490" y="530" />
+        <di:waypoint x="1540" y="530" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="M_10_di" bpmnElement="M_10">
+        <di:waypoint x="1640" y="530" />
+        <di:waypoint x="1702" y="530" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="M_03_di" bpmnElement="M_03">
+        <di:waypoint x="510" y="390" />
+        <di:waypoint x="510" y="700" />
+        <di:waypoint x="540" y="700" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="Participant_Kunde_di" bpmnElement="Participant_Kunde" isHorizontal="true">
+        <dc:Bounds x="160" y="40" width="1640" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Participant_Hersteller_di" bpmnElement="Participant_Hersteller" isHorizontal="true">
+        <dc:Bounds x="480" y="870" width="160" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Participant_Versicherung_di" bpmnElement="Participant_Versicherung" isHorizontal="true">
+        <dc:Bounds x="660" y="870" width="300" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Msg_Beschwerde_di" bpmnElement="Msg_Beschwerde">
+        <di:waypoint x="260" y="100" />
+        <di:waypoint x="260" y="332" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="281" y="120" width="61" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Msg_KV_di" bpmnElement="Msg_KV">
+        <di:waypoint x="1070" y="190" />
+        <di:waypoint x="1070" y="100" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1091" y="120" width="60" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Msg_Teil_di" bpmnElement="Msg_Teil">
+        <di:waypoint x="1440" y="310" />
+        <di:waypoint x="1440" y="100" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1464" y="120" width="55" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Msg_EBike_di" bpmnElement="Msg_EBike">
+        <di:waypoint x="1590" y="490" />
+        <di:waypoint x="1590" y="100" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1603" y="120" width="94" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Msg_HEntscheid_di" bpmnElement="Msg_HEntscheid">
+        <di:waypoint x="595" y="870" />
+        <di:waypoint x="595" y="740" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="613" y="815" width="67" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Msg_VEntscheid_di" bpmnElement="Msg_VEntscheid">
+        <di:waypoint x="865" y="870" />
+        <di:waypoint x="865" y="740" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="883" y="815" width="67" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Msg_Antrag_di" bpmnElement="Msg_Antrag">
+        <di:waypoint x="565" y="740" />
+        <di:waypoint x="565" y="870" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="477" y="815" width="74" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Msg_Meldung_di" bpmnElement="Msg_Meldung">
+        <di:waypoint x="700" y="740" />
+        <di:waypoint x="700" y="870" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="725" y="815" width="53" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Msg_Erinnerung_di" bpmnElement="Msg_Erinnerung">
+        <di:waypoint x="825" y="740" />
+        <di:waypoint x="825" y="870" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="747" y="852" width="54" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

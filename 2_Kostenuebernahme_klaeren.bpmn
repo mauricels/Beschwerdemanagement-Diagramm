@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_Process_KostenuebernahmeKlaeren" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.30.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.6.0">
+  <bpmn:collaboration id="Collaboration_Process_KostenuebernahmeKlaeren">
+    <bpmn:participant id="Participant_Haendler" name="E-Bike-Händler – Schadensmanagement" processRef="Process_KostenuebernahmeKlaeren" />
+    <bpmn:participant id="Participant_Hersteller" name="Hersteller" />
+    <bpmn:participant id="Participant_Versicherung" name="Versicherung" />
+    <bpmn:messageFlow id="Msg_Antrag" name="Garantieantrag" sourceRef="Task_Antrag" targetRef="Participant_Hersteller" />
+    <bpmn:messageFlow id="Msg_HEntscheid" name="Entscheidung" sourceRef="Participant_Hersteller" targetRef="Catch_Hersteller" />
+    <bpmn:messageFlow id="Msg_Meldung" name="Schadens­meldung" sourceRef="Call_VersicherungsfallAbwickeln" targetRef="Participant_Versicherung" />
+    <bpmn:messageFlow id="Msg_Erinnerung" name="Erinnerung" sourceRef="Call_VersicherungsfallAbwickeln" targetRef="Participant_Versicherung" />
+    <bpmn:messageFlow id="Msg_VEntscheid" name="Entscheidung" sourceRef="Participant_Versicherung" targetRef="Call_VersicherungsfallAbwickeln" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_KostenuebernahmeKlaeren" name="Kostenübernahme klären" isExecutable="true">
+    <bpmn:startEvent id="Start_K">
+      <bpmn:outgoing>K_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:exclusiveGateway id="GW_Garantie" name="Innerhalb Garantie?">
+      <bpmn:incoming>K_1</bpmn:incoming>
+      <bpmn:outgoing>K_Garantie_Ja</bpmn:outgoing>
+      <bpmn:outgoing>K_Garantie_Nein</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="GW_Freigabe" name="Herstellerfreigabe erforderlich?">
+      <bpmn:incoming>K_Garantie_Ja</bpmn:incoming>
+      <bpmn:outgoing>K_Freigabe_Ja</bpmn:outgoing>
+      <bpmn:outgoing>K_Freigabe_Nein</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sendTask id="Task_Antrag" name="Garantieantrag an Hersteller senden">
+      <bpmn:incoming>K_Freigabe_Ja</bpmn:incoming>
+      <bpmn:outgoing>K_2</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:intermediateCatchEvent id="Catch_Hersteller" name="Entscheidung Hersteller erhalten">
+      <bpmn:incoming>K_2</bpmn:incoming>
+      <bpmn:outgoing>K_3</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="Catch_Hersteller_MED" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:exclusiveGateway id="GW_Anerkannt" name="Garantie anerkannt?">
+      <bpmn:incoming>K_3</bpmn:incoming>
+      <bpmn:outgoing>K_Anerkannt_Ja</bpmn:outgoing>
+      <bpmn:outgoing>K_Anerkannt_Nein</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="GW_JoinG">
+      <bpmn:incoming>K_Freigabe_Nein</bpmn:incoming>
+      <bpmn:incoming>K_Anerkannt_Ja</bpmn:incoming>
+      <bpmn:outgoing>K_4</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="End_Garantie" name="Kosten durch Garantie gedeckt">
+      <bpmn:incoming>K_4</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:exclusiveGateway id="GW_JoinV">
+      <bpmn:incoming>K_Garantie_Nein</bpmn:incoming>
+      <bpmn:incoming>K_Anerkannt_Nein</bpmn:incoming>
+      <bpmn:outgoing>K_5</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="GW_Deckung" name="Deckungszusage erhalten?">
+      <bpmn:incoming>K_6</bpmn:incoming>
+      <bpmn:outgoing>K_Deckung_Ja</bpmn:outgoing>
+      <bpmn:outgoing>K_Deckung_Nein</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="End_Versicherung" name="Kosten durch Versicherung gedeckt">
+      <bpmn:incoming>K_Deckung_Ja</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="End_Keine" name="Keine Kostenübernahme">
+      <bpmn:incoming>K_Deckung_Nein</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:callActivity id="Call_VersicherungsfallAbwickeln" name="Versicherungs­fall abwickeln" calledElement="Process_VersicherungsfallAbwickeln">
+      <bpmn:extensionElements>
+        <zeebe:calledElement processId="Process_VersicherungsfallAbwickeln" propagateAllChildVariables="false" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>K_5</bpmn:incoming>
+      <bpmn:outgoing>K_6</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:sequenceFlow id="K_1" sourceRef="Start_K" targetRef="GW_Garantie" />
+    <bpmn:sequenceFlow id="K_Garantie_Ja" name="Ja" sourceRef="GW_Garantie" targetRef="GW_Freigabe" />
+    <bpmn:sequenceFlow id="K_Garantie_Nein" name="Nein" sourceRef="GW_Garantie" targetRef="GW_JoinV" />
+    <bpmn:sequenceFlow id="K_Freigabe_Ja" name="Ja" sourceRef="GW_Freigabe" targetRef="Task_Antrag" />
+    <bpmn:sequenceFlow id="K_Freigabe_Nein" name="Nein" sourceRef="GW_Freigabe" targetRef="GW_JoinG" />
+    <bpmn:sequenceFlow id="K_2" sourceRef="Task_Antrag" targetRef="Catch_Hersteller" />
+    <bpmn:sequenceFlow id="K_3" sourceRef="Catch_Hersteller" targetRef="GW_Anerkannt" />
+    <bpmn:sequenceFlow id="K_Anerkannt_Ja" name="Ja" sourceRef="GW_Anerkannt" targetRef="GW_JoinG" />
+    <bpmn:sequenceFlow id="K_Anerkannt_Nein" name="Nein" sourceRef="GW_Anerkannt" targetRef="GW_JoinV" />
+    <bpmn:sequenceFlow id="K_4" sourceRef="GW_JoinG" targetRef="End_Garantie" />
+    <bpmn:sequenceFlow id="K_5" sourceRef="GW_JoinV" targetRef="Call_VersicherungsfallAbwickeln" />
+    <bpmn:sequenceFlow id="K_6" sourceRef="Call_VersicherungsfallAbwickeln" targetRef="GW_Deckung" />
+    <bpmn:sequenceFlow id="K_Deckung_Ja" name="Ja" sourceRef="GW_Deckung" targetRef="End_Versicherung" />
+    <bpmn:sequenceFlow id="K_Deckung_Nein" name="Nein" sourceRef="GW_Deckung" targetRef="End_Keine" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_Process_KostenuebernahmeKlaeren">
+    <bpmndi:BPMNPlane id="BPMNPlane_Process_KostenuebernahmeKlaeren" bpmnElement="Collaboration_Process_KostenuebernahmeKlaeren">
+      <bpmndi:BPMNShape id="Participant_Haendler_di" bpmnElement="Participant_Haendler" isHorizontal="true">
+        <dc:Bounds x="40" y="110" width="1190" height="480" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Participant_Hersteller_di" bpmnElement="Participant_Hersteller" isHorizontal="true">
+        <dc:Bounds x="380" y="0" width="260" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Participant_Versicherung_di" bpmnElement="Participant_Versicherung" isHorizontal="true">
+        <dc:Bounds x="700" y="620" width="340" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Start_K_di" bpmnElement="Start_K">
+        <dc:Bounds x="82" y="302" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_Garantie_di" bpmnElement="GW_Garantie" isMarkerVisible="true">
+        <dc:Bounds x="165" y="295" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="220" y="306" width="90" height="28" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_Freigabe_di" bpmnElement="GW_Freigabe" isMarkerVisible="true">
+        <dc:Bounds x="275" y="215" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="255" y="271" width="90" height="28" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Antrag_di" bpmnElement="Task_Antrag">
+        <dc:Bounds x="380" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Catch_Hersteller_di" bpmnElement="Catch_Hersteller">
+        <dc:Bounds x="542" y="222" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="515" y="264" width="90" height="42" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_Anerkannt_di" bpmnElement="GW_Anerkannt" isMarkerVisible="true">
+        <dc:Bounds x="635" y="215" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="615" y="181" width="90" height="28" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_JoinG_di" bpmnElement="GW_JoinG" isMarkerVisible="true">
+        <dc:Bounds x="755" y="215" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_Garantie_di" bpmnElement="End_Garantie">
+        <dc:Bounds x="882" y="222" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="855" y="264" width="90" height="42" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_JoinV_di" bpmnElement="GW_JoinV" isMarkerVisible="true">
+        <dc:Bounds x="635" y="375" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_Deckung_di" bpmnElement="GW_Deckung" isMarkerVisible="true">
+        <dc:Bounds x="1015" y="375" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="995" y="341" width="90" height="28" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_Versicherung_di" bpmnElement="End_Versicherung">
+        <dc:Bounds x="1132" y="382" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1105" y="424" width="90" height="42" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_Keine_di" bpmnElement="End_Keine">
+        <dc:Bounds x="1132" y="482" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1105" y="524" width="90" height="28" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Call_VersicherungsfallAbwickeln_di" bpmnElement="Call_VersicherungsfallAbwickeln">
+        <dc:Bounds x="740" y="360" width="220" height="80" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="805" y="446" width="90" height="28" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="K_1_di" bpmnElement="K_1">
+        <di:waypoint x="118" y="320" />
+        <di:waypoint x="165" y="320" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="K_Garantie_Ja_di" bpmnElement="K_Garantie_Ja">
+        <di:waypoint x="190" y="295" />
+        <di:waypoint x="190" y="240" />
+        <di:waypoint x="275" y="240" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="196" y="260" width="22" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="K_Garantie_Nein_di" bpmnElement="K_Garantie_Nein">
+        <di:waypoint x="190" y="345" />
+        <di:waypoint x="190" y="400" />
+        <di:waypoint x="635" y="400" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="196" y="362" width="30" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="K_Freigabe_Ja_di" bpmnElement="K_Freigabe_Ja">
+        <di:waypoint x="325" y="240" />
+        <di:waypoint x="380" y="240" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="332" y="222" width="22" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="K_Freigabe_Nein_di" bpmnElement="K_Freigabe_Nein">
+        <di:waypoint x="300" y="215" />
+        <di:waypoint x="300" y="160" />
+        <di:waypoint x="780" y="160" />
+        <di:waypoint x="780" y="215" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="306" y="180" width="30" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="K_2_di" bpmnElement="K_2">
+        <di:waypoint x="480" y="240" />
+        <di:waypoint x="542" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="K_3_di" bpmnElement="K_3">
+        <di:waypoint x="578" y="240" />
+        <di:waypoint x="635" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="K_Anerkannt_Ja_di" bpmnElement="K_Anerkannt_Ja">
+        <di:waypoint x="685" y="240" />
+        <di:waypoint x="755" y="240" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="692" y="222" width="22" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="K_Anerkannt_Nein_di" bpmnElement="K_Anerkannt_Nein">
+        <di:waypoint x="660" y="265" />
+        <di:waypoint x="660" y="375" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="666" y="325" width="30" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="K_4_di" bpmnElement="K_4">
+        <di:waypoint x="805" y="240" />
+        <di:waypoint x="882" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="K_5_di" bpmnElement="K_5">
+        <di:waypoint x="685" y="400" />
+        <di:waypoint x="740" y="400" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="K_6_di" bpmnElement="K_6">
+        <di:waypoint x="960" y="400" />
+        <di:waypoint x="1015" y="400" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="K_Deckung_Ja_di" bpmnElement="K_Deckung_Ja">
+        <di:waypoint x="1065" y="400" />
+        <di:waypoint x="1132" y="400" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1072" y="382" width="22" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="K_Deckung_Nein_di" bpmnElement="K_Deckung_Nein">
+        <di:waypoint x="1040" y="425" />
+        <di:waypoint x="1040" y="500" />
+        <di:waypoint x="1132" y="500" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1046" y="445" width="30" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Msg_Antrag_di" bpmnElement="Msg_Antrag">
+        <di:waypoint x="430" y="200" />
+        <di:waypoint x="430" y="60" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="436" y="75" width="90" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Msg_HEntscheid_di" bpmnElement="Msg_HEntscheid">
+        <di:waypoint x="560" y="60" />
+        <di:waypoint x="560" y="222" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="566" y="75" width="90" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Msg_Meldung_di" bpmnElement="Msg_Meldung">
+        <di:waypoint x="770" y="440" />
+        <di:waypoint x="770" y="620" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="674" y="465" width="90" height="28" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Msg_Erinnerung_di" bpmnElement="Msg_Erinnerung">
+        <di:waypoint x="800" y="440" />
+        <di:waypoint x="800" y="620" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="806" y="465" width="90" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Msg_VEntscheid_di" bpmnElement="Msg_VEntscheid">
+        <di:waypoint x="930" y="620" />
+        <di:waypoint x="930" y="440" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="936" y="465" width="90" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
