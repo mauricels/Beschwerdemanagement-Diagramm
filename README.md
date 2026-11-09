@@ -7,3 +7,5 @@ BPMN-Diagramme zum Beschwerdemanagement-Prozess für Camunda 8:
 - `2_Kostenuebernahme_klaeren.bpmn`
 - `2a_Versicherungsfall_abwickeln.bpmn`
 - `3_Ersatzteilloesung_festlegen.bpmn`
+
+Zusammenfassung, potenzielle Probleme und Feedback vom Professor: [ZUSAMMENFASSUNG.md](ZUSAMMENFASSUNG.md)
